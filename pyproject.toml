@@ -10,10 +10,12 @@ python = "^3.12"
 fastapi = "^0.115.12"
 uvicorn = "^0.34.2"
 sqlalchemy = "^2.0.41"
-psycopg2-binary = "^2.9.10"
 alembic = "^1.16.1"
 dotenv = "^0.9.9"
 python-slugify = "^8.0.4"
+asyncpg = "^0.30.0"
+passlib = "^1.7.4"
+bcrypt = "4.0.1"
 
 
 [build-system]
