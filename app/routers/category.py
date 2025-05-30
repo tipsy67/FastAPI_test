@@ -7,9 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.backend.db_depends import get_db
 from app.models import Category
+from app.routers.services import check_user_permissions
 from app.schemas import CreateCategory
 
-router = APIRouter(prefix="/categories", tags=["category"])
+router = APIRouter(dependencies=[] , prefix="/categories", tags=["category"])
 
 @router.get('/')
 async def get_all_categories(db: Annotated[AsyncSession, Depends(get_db)]):
@@ -17,7 +18,9 @@ async def get_all_categories(db: Annotated[AsyncSession, Depends(get_db)]):
     return categories.all()
 
 @router.post('/', status_code=status.HTTP_201_CREATED)
-async def create_category(db:Annotated[AsyncSession, Depends(get_db)], create_cat: CreateCategory):
+async def create_category(db:Annotated[AsyncSession, Depends(get_db)],
+                          get_user: Annotated[dict, Depends(check_user_permissions(['is_admin']))],
+                          create_cat: CreateCategory):
     await db.execute(insert(Category).values(name=create_cat.name,
                                        parent_id=create_cat.parent_id,
                                        slug=slugify(create_cat.name)))
@@ -28,7 +31,9 @@ async def create_category(db:Annotated[AsyncSession, Depends(get_db)], create_ca
     }
 
 @router.put('/{category_slug}')
-async def update_category(db: Annotated[AsyncSession, Depends(get_db)], category_slug: str, update_cat: CreateCategory):
+async def update_category(db: Annotated[AsyncSession, Depends(get_db)],
+                          get_user: Annotated[dict, Depends(check_user_permissions(['is_admin']))],
+                          category_slug: str, update_cat: CreateCategory):
     category = await db.scalar(select(Category).where(Category.slug == category_slug))
     if category is None:
         raise HTTPException(
@@ -47,7 +52,9 @@ async def update_category(db: Annotated[AsyncSession, Depends(get_db)], category
 
 
 @router.delete('/{category_slug}')
-async def delete_category(db: Annotated[AsyncSession, Depends(get_db)], category_slug: str):
+async def delete_category(db: Annotated[AsyncSession, Depends(get_db)],
+                          get_user: Annotated[dict, Depends(check_user_permissions(['is_admin']))],
+                          category_slug: str):
     category = await db.scalar(select(Category).where(Category.slug == category_slug))
     if category is None:
         raise HTTPException(

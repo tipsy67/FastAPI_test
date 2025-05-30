@@ -45,7 +45,7 @@ async def patch_permission(db: Annotated[AsyncSession, Depends(get_db)],
 
 @router.delete('/')
 async def delete_user(db: Annotated[AsyncSession, Depends(get_db)],
-                      get_user: Annotated[str, Depends(get_current_user)], user_id: int):
+                      get_user: Annotated[dict, Depends(get_current_user)], user_id: int):
     if get_user.get('is_admin'):
         user = await db.scalar(select(User).where(User.id == user_id))
 
