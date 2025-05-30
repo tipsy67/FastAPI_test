@@ -10,6 +10,7 @@ from starlette import status
 
 from app.backend.db_depends import get_db
 from app.models import Product, Category
+from app.routers.services import check_user_permissions
 from app.schemas import CreateProduct
 
 router = APIRouter(prefix='/products', tags=['product'])
@@ -21,7 +22,9 @@ async def get_all_products(db: Annotated[AsyncSession, Depends(get_db)]):
 
 
 @router.post('/', status_code=status.HTTP_201_CREATED)
-async def create_product(db: Annotated[AsyncSession, Depends(get_db)], create_prod: CreateProduct):
+async def create_product(db: Annotated[AsyncSession, Depends(get_db)],
+                          get_user: Annotated[dict, Depends(check_user_permissions(['is_admin', 'is_supplier']))],
+                          create_prod: CreateProduct):
     await db.execute(insert(Product).values(
         name=create_prod.name,
         slug=slugify(create_prod.name),
@@ -32,6 +35,7 @@ async def create_product(db: Annotated[AsyncSession, Depends(get_db)], create_pr
         image_url=create_prod.image_url,
         stock=create_prod.stock,
         category_id=create_prod.category,
+        supplier_id=get_user.get('id'),
     ))
     await db.commit()
     return {
@@ -71,14 +75,26 @@ async def get_product(db: Annotated[AsyncSession, Depends(get_db)], product_slug
 
 
 @router.put('/{product_slug}')
-async def update_product(db: Annotated[AsyncSession, Depends(get_db)], product_slug: str, create_prod: CreateProduct):
+async def update_product(db: Annotated[AsyncSession, Depends(get_db)],
+                         get_user: Annotated[dict, Depends(check_user_permissions(['is_admin', 'is_supplier']))],
+                         product_slug: str, create_prod: CreateProduct):
     product = await db.scalar(select(Product).where(Product.slug == product_slug))
     if product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Product {product_slug} not found'
         )
-
+    if product.id != get_user.get('id') and not get_user.get('is_admin'):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Permission denied'
+        )
+    category = await db.scalar(select(Category).where(Category.id == create_prod.category))
+    if category is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='There is no category found'
+        )
     product.name = create_prod.name
     product.description = create_prod.description
     product.slug = slugify(create_prod.name)
@@ -95,12 +111,20 @@ async def update_product(db: Annotated[AsyncSession, Depends(get_db)], product_s
     }
 
 @router.delete('/{product_slug}')
-async def delete_product(db: Annotated[AsyncSession, Depends(get_db)], product_slug: str):
+async def delete_product(db: Annotated[AsyncSession, Depends(get_db)],
+                         get_user: Annotated[dict, Depends(check_user_permissions(['is_admin', 'is_supplier']))],
+                         product_slug: str):
     product = await db.scalar(select(Product).where(Product.slug == product_slug))
     if product is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f'Product {product_slug} not found'
+        )
+
+    if product.id != get_user.get('id') and not get_user.get('is_admin'):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Permission denied'
         )
 
     product.is_active = False
