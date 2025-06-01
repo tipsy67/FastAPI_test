@@ -7,13 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.backend.db_depends import get_db
 from app.models import Category
+from app.routers.auth import get_current_user
 from app.routers.services import check_user_permissions
 from app.schemas import CreateCategory
 
 router = APIRouter(dependencies=[] , prefix="/categories", tags=["category"])
 
 @router.get('/')
-async def get_all_categories(db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_all_categories(db: Annotated[AsyncSession, Depends(get_db)],
+                             get_user: Annotated[dict, Depends(get_current_user)]):
     categories = await db.scalars(select(Category).where(Category.is_active == True))
     return categories.all()
 

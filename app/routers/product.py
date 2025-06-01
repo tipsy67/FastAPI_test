@@ -10,13 +10,15 @@ from starlette import status
 
 from app.backend.db_depends import get_db
 from app.models import Product, Category
+from app.routers.auth import get_current_user
 from app.routers.services import check_user_permissions
 from app.schemas import CreateProduct
 
 router = APIRouter(prefix='/products', tags=['product'])
 
 @router.get('/')
-async def get_all_products(db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_all_products(db: Annotated[AsyncSession, Depends(get_db)],
+                           get_user: Annotated[dict, Depends(get_current_user)]):
     products = await db.scalars(select(Product).where(Product.is_active==True, Product.stock > 0))
     return products.all()
 
@@ -44,7 +46,9 @@ async def create_product(db: Annotated[AsyncSession, Depends(get_db)],
     }
 
 @router.get('/{category_slug}')
-async def get_product_by_cat(db:Annotated[AsyncSession, Depends(get_db)], category_slug: str):
+async def get_product_by_cat(db:Annotated[AsyncSession, Depends(get_db)],
+                            get_user: Annotated[dict, Depends(get_current_user)],
+                            category_slug: str):
     category = await db.scalar(select(Category).where(Category.slug == category_slug))
     if category is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
@@ -63,7 +67,8 @@ async def get_product_by_cat(db:Annotated[AsyncSession, Depends(get_db)], catego
 
 
 @router.get('/details/{product_slug}')
-async def get_product(db: Annotated[AsyncSession, Depends(get_db)], product_slug: str):
+async def get_product(db: Annotated[AsyncSession, Depends(get_db)],
+                        get_user: Annotated[dict, Depends(get_current_user)], product_slug: str):
     product = await db.scalar(select(Product).where(Product.slug == product_slug))
     if product is None:
         raise HTTPException(
