@@ -22,11 +22,12 @@ def check_user_permissions(permissions: list[str]):
     return dependency
 
 async def calculate_rank(product: Product, add: bool, grade: int) -> float:
+    reviews_count = product.reviews_count or 0
     if add:
-        new_rating = (product.rating * product.reviews_count + grade)/(product.reviews_count + 1)
+        new_rating = (product.rating * reviews_count + grade)/(reviews_count + 1)
     else:
         try:
-            new_rating = (product.rating * product.reviews_count) - grade/(product.reviews_count - 1)
+            new_rating = (product.rating * reviews_count) - grade/(reviews_count - 1)
         except ZeroDivisionError:
             new_rating = 0
     return new_rating

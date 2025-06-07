@@ -47,7 +47,8 @@ async def create_review(db: Annotated[AsyncSession, Depends(get_db)],
         grade = new_review.grade,
     ))
 
-    product.rating = await calculate_rank(product, True, new_review.rating)
+    product.rating = await calculate_rank(product, True, new_review.grade)
+    product.reviews_count += 1
 
     await db.commit()
 
@@ -60,15 +61,22 @@ async def delete_review(db: Annotated[AsyncSession, Depends(get_db)],
     review = await db.scalar(select(Review).where(Review.id == review_id))
     if review is None:
         raise HTTPException(status_code=404, detail='Review not found')
+
+    product = await db.scalar(select(Product).where(Product.id == review.product_id))
+    if product is None:
+        raise HTTPException(status_code=404, detail='Product not found')
+
+    product.rating = await calculate_rank(product, not review.is_active, review.grade)
+
     if review.is_active:
         review.is_active = False
         message=''
+        product.reviews_count -= 1
     else:
         review.is_active = True
         message='un'
+        product.reviews_count += 1
 
-    product = await db.scalar(select(Product).where(Product.id == review.product_id))
-    product.rating = await calculate_rank(product, review.is_active, review.grade)
 
     await db.commit()
 
