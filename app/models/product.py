@@ -15,8 +15,10 @@ class Product(Base):
     image_url = Column(String, nullable=True)
     stock = Column(Integer)
     rating = Column(Float)
+    reviews_count = Column(Integer)
     category_id = Column(Integer, ForeignKey('category.id'))
     supplier_id = Column(Integer, ForeignKey('user.id'), nullable=True)
 
-    cat = relationship('Category', backref='products', uselist=False)
+    category = relationship('Category', back_populates='products', uselist=False)
+    reviews = relationship('Review', back_populates='product', uselist=True)
 

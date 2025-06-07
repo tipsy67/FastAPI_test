@@ -14,4 +14,4 @@ class Category(Base):
     is_active = Column(Boolean, default=True)
     parent_id = Column(Integer, ForeignKey('category.id'), nullable=True)
 
-    product = relationship('Product', backref='category', uselist=True)
+    products = relationship('Product', back_populates='category', uselist=True)

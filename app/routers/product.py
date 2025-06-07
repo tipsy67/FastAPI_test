@@ -27,6 +27,12 @@ async def get_all_products(db: Annotated[AsyncSession, Depends(get_db)],
 async def create_product(db: Annotated[AsyncSession, Depends(get_db)],
                           get_user: Annotated[dict, Depends(check_user_permissions(['is_admin', 'is_supplier']))],
                           create_prod: CreateProduct):
+    category = await db.scalar(select(Category).where(Category.id == create_prod.category_id))
+    if category is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='There is no category found'
+        )
     await db.execute(insert(Product).values(
         name=create_prod.name,
         slug=slugify(create_prod.name),
@@ -36,7 +42,7 @@ async def create_product(db: Annotated[AsyncSession, Depends(get_db)],
         rating=0.0,
         image_url=create_prod.image_url,
         stock=create_prod.stock,
-        category_id=create_prod.category,
+        category_id=create_prod.category_id,
         supplier_id=get_user.get('id'),
     ))
     await db.commit()

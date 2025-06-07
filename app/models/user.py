@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.orm import relationship
 
 from app.backend.db import Base
 
@@ -15,3 +16,5 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     is_supplier = Column(Boolean, default=False)
     is_customer = Column(Boolean, default=True)
+
+    reviews = relationship('Review', back_populates='user', uselist=True)
